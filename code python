@@ -1,0 +1,74 @@
+class automate:
+	def __init__(self, nom_du_fichier):
+		self.deterministe = False
+		self.complet = False
+		self.minimal = False
+		self.standar = False
+		fichier = open(nom_du_fichier, "r")
+		texte = fichier.read()
+		fichier.close()
+		lignes = []
+		for ligne in texte.split("\n"):
+			lignes.append(ligne)
+		self.taille_alphabet = (int)(lignes[0])
+		self.nb_etats = (int)(lignes[1])
+		self.etats_initiaux = []
+		for etat in lignes[2].split(" "):
+			self.etats_initiaux.append((int)(etat))
+		self.etats_terminaux = []
+		for etat in lignes[3].split(" "):
+			self.etats_terminaux.append((int)(etat))
+		self.nb_transitions = (int)(lignes[4])
+		transitions = [[0] * 3 for _ in range(self.nb_transitions)]
+		for nro_ligne in range (5, self.nb_transitions + 5):
+			c = 0
+			while (lignes[nro_ligne][c] >= '0' and lignes[nro_ligne][c] <= '9'):
+				transitions[nro_ligne-5][0] = 10 * transitions[nro_ligne-5][0] + ord(lignes[nro_ligne][c]) - ord('0')
+				c += 1
+			if (lignes[nro_ligne][c] == '*'):
+				transitions[nro_ligne - 5][1] = -1
+			else:
+				transitions[nro_ligne - 5][1] = ord(lignes[nro_ligne][c]) - ord('a')
+			c += 1
+			while (c < len(lignes[nro_ligne])):
+				transitions[nro_ligne-5][2] = 10 * transitions[nro_ligne-5][2] + ord(lignes[nro_ligne][c]) - ord('0')
+				c += 1
+		self.table_transition = [[[]]]
+		for i in range(self.nb_etats):
+			self.table_transition.append([[]])
+			for j in range(self.taille_alphabet + 1):
+				self.table_transition[i].append([])
+		for transition in transitions:
+			print(str(transition[0]) + " " + chr(transition[1] + ord('a')) + " " + str(transition[2]))
+		for transition in transitions:
+			if (transition[1] == -1):
+				self.table_transition[transition[0]][self.taille_alphabet].append(transition[2])
+			else:
+				self.table_transition[transition[0]][transition[1]].append(transition[2])
+	def afficher(self):
+		print(self.taille_alphabet)
+		print(self.nb_etats)
+		for etat in self.etats_initiaux:
+			print(etat, end = " ")
+		print("")
+		for etat in self.etats_terminaux:
+			print(etat, end = " ")
+		print("")
+		print(self.nb_transitions)
+		print(" ", end = "")
+		for char in range(self.taille_alphabet):
+			print(" " + chr(char + ord('a')) + " ", end = "")
+		print(" *")
+		for etat_init in range(self.nb_etats):
+			print(etat_init, end = " ")
+			for char in range(self.taille_alphabet + 1):
+				for etat_ter in self.table_transition[etat_init][char]:
+					print(etat_ter, end = ",")
+				print(" ", end = "")
+			print("")
+		
+
+
+
+test1 = automate("Automate.txt")
+test1.afficher()
