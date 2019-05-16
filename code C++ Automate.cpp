@@ -1,6 +1,6 @@
 #include "Automate.h"
 
-aff_err(string nom_fichier_source, int nro_ligne, int nro_colonne, string message = "")
+void aff_err(string nom_fichier_source, int nro_ligne, int nro_colonne, string message = "")
 {
     cerr << "fichier " << nom_fichier_source << " non conforme: ligne " << nro_ligne << " colonne " << nro_colonne << " " << message << endl;
 }
@@ -45,9 +45,11 @@ int nb_nbr(string nom_fichier_source, int nro_ligne, string ligne, int longeur, 
 int* decoupe(string nom_fichier_source, int nro_ligne, string ligne)
 {
     int longeur = ligne.length();
-    int nb = nb_nbr(nom_fichier_source, nro_ligne, ligne, longeur, 0);
-    int* valeurs = (int*)malloc(nb * sizeof(int));
+    int nb = nb_nbr(nom_fichier_source, nro_ligne, ligne, longeur, 0) - 1;
+    int* valeurs = (int*)malloc((nb-1) * sizeof(int));
     int curseur = 0;
+    while(ligne[curseur] != ' ') curseur++;
+    curseur++;
     for (int i = 0; i < nb-1; i++) {
         int n = 0;
         while (ligne[curseur] != ' ') {
@@ -57,12 +59,11 @@ int* decoupe(string nom_fichier_source, int nro_ligne, string ligne)
         valeurs[i] = n;
         curseur++;
     }
-    int n = 0;
+    valeurs[nb-1] = 0;
     while (curseur < longeur) {
-        n = 10 * n + (int)(ligne[curseur] - '0');
+        valeurs[nb-1] = 10 * valeurs[nb-1] + (int)(ligne[curseur] - '0');
         curseur++;
     }
-    valeurs[nb-1] = n;
     return valeurs;
 }
 
@@ -128,16 +129,16 @@ Automate::Automate(string fichier_source)
         string ligne;
         getline(fichier, ligne);
         if (c_un_nb(fichier_source, 1, ligne)) taille_alphabet = conv_nb(ligne);
-        else correct = 0;
+        else {correct = 0; return;}
         getline(fichier, ligne);
         if (c_un_nb(fichier_source, 2, ligne)) nb_etats = conv_nb(ligne);
-        else correct = 0;
+        else {correct = 0; return;}
         getline(fichier, ligne);
         etats_initiaux = decoupe(fichier_source, 3, ligne);
-        nb_etats_initiaux = etats_initiaux[0];
+        nb_etats_initiaux = nb_nbr(nom_fichier_source, 3, ligne, ligne.length(), 0) - 1;
         getline(fichier, ligne);
         etats_terminaux = decoupe(fichier_source, 4, ligne);
-        nb_etats_terminaux = etats_terminaux[0];
+        nb_etats_terminaux = nb_nbr(nom_fichier_source, 4, ligne, ligne.length(), 0) - 1;
         getline(fichier, ligne);
         if (c_un_nb(fichier_source, 5, ligne)) nb_transitions = conv_nb(ligne);
         else correct = 0;
@@ -187,14 +188,11 @@ int Automate::est_un_automate_asynchrone()
 
 int Automate::est_un_automate_deterministe() // Sachant qu'il n'est pas asynchrone
 {
-    if (nb_transitions > nb_etats * taille_alphabet) return 0;
-    int** tab = (int**)malloc(nb_etats * sizeof(int*));
-    for (int i = 0; i < nb_etats; i++) {
-        tab[i] = (int*)malloc(taille_alphabet * sizeof(int));
-        for (int j = 0; j < taille_alphabet; j++) tab[i][j] = 0;
-    }
-    for (int i = 0; i < nb_transitions; i++) {
-        if (tab[transitions[i][0]][transitions[i][1]]) return 0;
+    if (nb_etats_initiaux > 1) return 0;
+    for (int e = 0; e < nb_etats; e++) {
+        for (int c = 0; c < taille_alphabet; c++) {
+            if (nb_transit[e][c] > 1) return 0;
+        }
     }
     return 1;
 }
@@ -210,6 +208,15 @@ Automate::~Automate()
     free(etats_terminaux);
     for (int i = 0; i < nb_transitions; i++) free(transitions[i]);
     free(transitions);
+    for (int e = 0; e < nb_etats; e++) {
+        for (int c = 0; c < taille_alphabet+1; c++) {
+            free(table_transitions[e][c]);
+        }
+        free(table_transitions[e]);
+        free(nb_transit[e]);
+    }
+    free(table_transitions);
+    free(nb_transit);
 }
 
 void Automate::afficher()
@@ -217,16 +224,25 @@ void Automate::afficher()
     if (!correct) return;
     cout << "------------------------------------" << endl;
     cout << taille_alphabet << endl << nb_etats << endl << nb_etats_initiaux;
-    for (int i = 1; i <= nb_etats_initiaux; i++) cout << " " << etats_initiaux[i];
+    for (int i = 0; i < nb_etats_initiaux; i++) cout << " " << etats_initiaux[i];
     cout << endl << nb_etats_terminaux;
-    for (int i = 1; i <= nb_etats_terminaux; i++) cout << " " << etats_terminaux[i];
+    for (int i = 0; i < nb_etats_terminaux; i++) cout << " " << etats_terminaux[i];
     cout << endl << nb_transitions << endl;
     for (int i = 0; i < nb_transitions; i++) {
         if (transitions[i][1] == -1) cout << transitions[i][0] << '*' << transitions[i][2] << endl;
         else cout << transitions[i][0] << (char)(transitions[i][1] + (int)'a') << transitions[i][2] << endl;
     }
+    int maxi = 1;
+    for (int i = 0; i < nb_etats; i++) {
+        for (int j = 0; j < taille_alphabet+1; j++) {
+            if (maxi < nb_transit[i][j]) maxi = nb_transit[i][j];
+        }
+    }
     cout << "    ";
-    for (int i = 'a'; i < 'a' + taille_alphabet; i++) cout << (char)(i) << "     ";
+    for (int i = 'a'; i < 'a' + taille_alphabet; i++) {
+        cout << (char)(i) << " ";
+        for (int j = 1; j < maxi; j++) cout << "  ";
+    }
     cout << "*";
     for (int e = 0; e < nb_etats; e++) {
         cout << endl << e;
@@ -237,8 +253,11 @@ void Automate::afficher()
                 cout << table_transitions[e][i-'a'][j];
                 if (j < nb_transit[e][i-'a']-1) cout <<",";
             }
-            if (nb_transit[e][i-'a'] == 1) cout << "     ";
-            else for (int k = nb_transit[e][i-'a']; k < 3; k++) cout << "  ";
+            if (nb_transit[e][i-'a'] == 1) {
+                cout << " ";
+                for (int j = 1; j < maxi; j++) cout << "  ";
+            }
+            else for (int k = nb_transit[e][i-'a']; k < maxi; k++) cout << "  ";
         }
     }
     cout << endl << "------------------------------------" << endl;
