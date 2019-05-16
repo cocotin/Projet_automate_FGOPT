@@ -120,6 +120,7 @@ int* decoupe_transition(string nom_fichier_source, int nro_ligne, string ligne, 
 
 Automate::Automate(string fichier_source)
 {
+    correct = 1;
     nom_fichier_source = fichier_source;
     ifstream fichier(fichier_source.c_str(), ios::in);
     if(fichier)
@@ -127,8 +128,10 @@ Automate::Automate(string fichier_source)
         string ligne;
         getline(fichier, ligne);
         if (c_un_nb(fichier_source, 1, ligne)) taille_alphabet = conv_nb(ligne);
+        else correct = 0;
         getline(fichier, ligne);
         if (c_un_nb(fichier_source, 2, ligne)) nb_etats = conv_nb(ligne);
+        else correct = 0;
         getline(fichier, ligne);
         etats_initiaux = decoupe(fichier_source, 3, ligne);
         nb_etats_initiaux = etats_initiaux[0];
@@ -137,25 +140,47 @@ Automate::Automate(string fichier_source)
         nb_etats_terminaux = etats_terminaux[0];
         getline(fichier, ligne);
         if (c_un_nb(fichier_source, 5, ligne)) nb_transitions = conv_nb(ligne);
+        else correct = 0;
         transitions = (int**)malloc(nb_transitions * sizeof(int*));
         for (int i = 0; i < nb_transitions; i++) {
             if(!getline(fichier, ligne)) aff_err(fichier_source, i+6, 0, "il manque cette ligne");
             else {
                 if (conforme_transition(fichier_source, i+6, ligne, taille_alphabet)) {
                     transitions[i] = decoupe_transition(fichier_source, i+6, ligne, nb_etats);
-                }
+                } else correct = 0;
             }
+        }
+        table_transitions = (int***)malloc(nb_etats * sizeof(int**));
+        nb_transit = (int**)malloc(nb_etats * sizeof(int*));
+        for (int i = 0; i < nb_etats; i++) {
+            table_transitions[i] = (int**)malloc((taille_alphabet + 1) * sizeof(int*));
+            nb_transit[i] = (int*)malloc((taille_alphabet + 1) * sizeof(int));
+        }
+        for (int t = 0; t < nb_transitions; t++) {
+            if (transitions[t][1] == -1) nb_transit[transitions[t][0]][taille_alphabet]++;
+            else nb_transit[transitions[t][0]][transitions[t][1]]++;
+        }
+        for (int i = 0; i < nb_etats; i++) {
+            for (int j = 0; j < taille_alphabet+1; j++) {
+                table_transitions[i][j] = (int*)malloc(nb_transit[i][j] * sizeof(int));
+                nb_transit[i][j] = 0;
+            }
+        }
+        for (int t = 0; t < nb_transitions; t++) {
+            table_transitions[transitions[t][0]][transitions[t][1]][nb_transit[transitions[t][0]][transitions[t][1]]] = transitions[t][2];
+            nb_transit[transitions[t][0]][transitions[t][1]]++;
         }
         fichier.close();
     } else {
         cerr << "Impossible d'ouvrir le fichier \"" << fichier_source << "\"" << endl;
+        correct = 0;
     }
 }
 
 int Automate::est_un_automate_asynchrone()
 {
     for (int i = 0; i < nb_transitions; i++) {
-        if (transition[i][1] == -1) return 1;
+        if (transitions[i][1] == -1) return 1;
     }
     return 0;
 }
@@ -189,6 +214,8 @@ Automate::~Automate()
 
 void Automate::afficher()
 {
+    if (!correct) return;
+    cout << "------------------------------------" << endl;
     cout << taille_alphabet << endl << nb_etats << endl << nb_etats_initiaux;
     for (int i = 1; i <= nb_etats_initiaux; i++) cout << " " << etats_initiaux[i];
     cout << endl << nb_etats_terminaux;
@@ -198,4 +225,21 @@ void Automate::afficher()
         if (transitions[i][1] == -1) cout << transitions[i][0] << '*' << transitions[i][2] << endl;
         else cout << transitions[i][0] << (char)(transitions[i][1] + (int)'a') << transitions[i][2] << endl;
     }
+    cout << "    ";
+    for (int i = 'a'; i < 'a' + taille_alphabet; i++) cout << (char)(i) << "     ";
+    cout << "*";
+    for (int e = 0; e < nb_etats; e++) {
+        cout << endl << e;
+        if (e < 10) cout << "   ";
+        else cout << "  ";
+        for (int i = 'a'; i < 'a' + taille_alphabet; i++) {
+            for (int j = 0; j < nb_transit[e][i-'a']; j++) {
+                cout << table_transitions[e][i-'a'][j];
+                if (j < nb_transit[e][i-'a']-1) cout <<",";
+            }
+            if (nb_transit[e][i-'a'] == 1) cout << "     ";
+            else for (int k = nb_transit[e][i-'a']; k < 3; k++) cout << "  ";
+        }
+    }
+    cout << endl << "------------------------------------" << endl;
 }
