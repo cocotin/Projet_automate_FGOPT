@@ -15,7 +15,6 @@ public:
     int est_un_automate_complet();
     ~Automate();
     void afficher();
-private:
     string nom_fichier_source;
     int correct;
     int taille_alphabet;
