@@ -17,6 +17,7 @@ public:
     void afficher();
 private:
     string nom_fichier_source;
+    int correct;
     int taille_alphabet;
     int nb_etats;
     int nb_etats_initiaux;
@@ -25,4 +26,6 @@ private:
     int* etats_terminaux;
     int nb_transitions;
     int** transitions;
+    int** nb_transit;
+    int*** table_transitions;
 };
