@@ -3,7 +3,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
-#include "Automate.h"
+#include "Automate_dc.h"
 
 using namespace std;
 
@@ -34,8 +34,24 @@ void menu() {
     string nom_fichier = "L2-F1-" + (string)reponse + ".txt";
     cout << nom_fichier << endl;
     aff_fichier(nom_fichier);
-    Automate toast(nom_fichier);
-    toast.afficher();
+    Automate af(nom_fichier);
+    if (!af.correct) menu();
+    af.afficher();
+    Automate_dc afdc;
+    if (af.est_un_automate_asynchrone()) {
+        afdc = Automate_dc(af, 'a');
+    } else {
+        if (af.est_un_automate_deterministe()) {
+            if (af.est_un_automate_complet()) {
+                afdc = Automate_dc(af, 'n');
+            } else {
+                afdc = Automate_dc(af, 'c');
+            }
+        } else {
+            afdc = Automate_dc(af, 's');
+        }
+    }
+    afdc.afficher();
     menu();
 }
 
