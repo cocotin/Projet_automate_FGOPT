@@ -22,10 +22,25 @@ void aff_fichier(string fichier_source) {
     }
 }
 
+void menu() {
+    printf("Quel automate voulez-vous utiliser?\nindiquez son numero(0 pour quitter) : ");
+    char reponse[20] = "";
+    scanf("%19s", reponse);
+    if (reponse[0] == '0') {
+        if (reponse[1] == '\0') {
+            return;
+        }
+    }
+    string nom_fichier = "L2-F1-" + (string)reponse + ".txt";
+    cout << nom_fichier << endl;
+    aff_fichier(nom_fichier);
+    Automate toast(nom_fichier);
+    toast.afficher();
+    menu();
+}
+
 int main()
 {
-    aff_fichier("Test.txt");
-    Automate toast("Test.txt");
-    toast.afficher();
+    menu();
     return 0;
 }
