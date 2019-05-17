@@ -44,6 +44,7 @@ Automate_dc::Automate_dc(Automate af, char style)
     if (style == 'n') {
         cout << 'n' << endl;
         nom_fichier_source = af.nom_fichier_source;
+        taille_alphabet = af.taille_alphabet;
         nb_etats = af.nb_etats;
         nb_etats_superposes = (int*)malloc(nb_etats * sizeof(int));
         for (int i = 0; i < nb_etats; i++) {
@@ -92,7 +93,7 @@ Automate_dc::Automate_dc(Automate af, char style)
             transitions[i] = (int*)malloc(taille_alphabet * sizeof(int));
             for (int j = 0; j < taille_alphabet; j++) {
                 if (af.nb_transit[i][j] == 1) {
-                    transitions[i][j] = af.transitions[i][j];
+                    transitions[i][j] = af.table_transitions[i][j][0];
                 } else {
                     transitions[i][j] = nb_etats-1;
                 }
@@ -206,17 +207,25 @@ Automate_dc::Automate_dc(Automate af, char style)
             etats[n] = (int*)malloc(nb_etats_superposes[n] * sizeof(int));
             for (int i = 0; i < nb_etats_superposes[n]; i++) etats[n][i] = traite->etat[i];
             transitions[n] = (int*)malloc(taille_alphabet * sizeof(int));
-            if (contient(af.etats_initiaux, af.nb_etats_terminaux, etats[n], nb_etats_superposes[n])) {
+            if (contient(af.etats_terminaux, af.nb_etats_terminaux, etats[n], nb_etats_superposes[n])) {
                 eta_ter++;
             }
             for (int j = 0; j < taille_alphabet; j++) {
-                transitions[n][j] = correspondant(tete, traite->transitions[j], traite->nb_etats_superposes[j]);
+                if (traite->transitions[j][0] == -1) {
+                    transitions[n][j] = -1;
+                } else {
+                    transitions[n][j] = correspondant(tete, traite->transitions[j], traite->nb_etats_superposes[j]);
+                }
             }
             traite = traite->suivant;
             n++;
         }
         if (poubelle) {
+            etats[nb_etats-1] = (int*)malloc(1 * sizeof(int));
+            etats[nb_etats-1][0] = -1;
+            transitions[nb_etats-1] = (int*)malloc(taille_alphabet * sizeof(int));
             for (int i = 0; i < taille_alphabet; i++) transitions[nb_etats-1][i] = -1;
+            nb_etats_superposes[nb_etats-1] = 1;
         }
         nb_etats_terminaux = eta_ter;
         nro_etats_terminaux = (int*)malloc(nb_etats_terminaux * sizeof(int));
@@ -224,7 +233,7 @@ Automate_dc::Automate_dc(Automate af, char style)
         int nro = 0;
         traite = tete;
         while (traite != NULL) {
-            if (contient(af.etats_initiaux, af.nb_etats_terminaux, etats[n], nb_etats_superposes[n])) {
+            if (contient(af.etats_terminaux, af.nb_etats_terminaux, etats[nro], nb_etats_superposes[nro])) {
                 nro_etats_terminaux[eta_ter] = nro;
                 eta_ter++;
             }
@@ -233,6 +242,7 @@ Automate_dc::Automate_dc(Automate af, char style)
         }
     } else {
         cout << "determinisation_et_completion_automate_asynchrone" << endl;
+        cout << "fonctionnalite non programme " << endl;
     }
 }
 
@@ -271,19 +281,24 @@ void Automate_dc::afficher()
         cout << (char)c;
     }
     for (int e = 0; e < nb_etats; e++) {
-        cout << endl << etats[e][0];
-        for (int i = 1; i < nb_etats_superposes[e]; i++) cout << "," << etats[e][i];
+        if (etats[e][0] == -1) {
+            cout << endl << "P";
+        } else {
+            cout << endl << etats[e][0];
+            for (int i = 1; i < nb_etats_superposes[e]; i++) cout << "," << etats[e][i];
+        }
         for (int i = 2 * nb_etats_superposes[e] - 1; i < 2 * maxi_superpo; i++) cout << " ";
         for (int j = 0; j < taille_alphabet; j++) {
             if (transitions[e][j] == -1) {
-                cout << 'P';
+                cout << "P ";
+                for (int i = 1; i < 2 * maxi_superpo; i++) cout << " ";
             } else {
                 cout << etats[transitions[e][j]][0];
                 for (int i = 1; i < nb_etats_superposes[transitions[e][j]]; i++) {
                     cout << "," << etats[transitions[e][j]][i];
                 }
+                for (int i = nb_etats_superposes[transitions[e][j]] - 1; i < maxi_superpo; i++) cout << "  ";
             }
-            for (int i = 2 * nb_etats_superposes[transitions[e][j]] - 1; i < 2 * maxi_superpo; i++) cout << " ";
         }
     }
     cout << endl << "------------------------------------" << endl;
