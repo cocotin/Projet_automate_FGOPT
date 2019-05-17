@@ -22,3 +22,4 @@ Liste::~Liste()
     free(nb_etats_superposes);
     free(transitions);
 }
+
