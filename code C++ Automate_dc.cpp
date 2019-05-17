@@ -1,5 +1,34 @@
 #include "Automate_dc.h"
 
+int egaux(int* ta, int na, int* tb, int nb)
+{
+    if (na != nb) return 0;
+    for (int i = 0; i < na; i++) {
+        if (ta[i] != tb[i]) return 0;
+    }
+    return 1;
+}
+
+int correspondant(Liste* tete, int* etat, int netat)
+{
+    int n = 0;
+    while (!egaux(tete->etat, tete->taille_etat, etat, netat)) {
+        tete = tete->suivant;
+        n++;
+    }
+    return n;
+}
+
+int contient(int* ter, int nter, int* etat, int netat)
+{
+    for (int i = 0; i < nter; i++) {
+        for (int j = 0; j < netat; j++) {
+            if (ter[i] == etat[j]) return 1;
+        }
+    }
+    return 0;
+}
+
 int nouveau(Liste* l, int* tab, int t)
 {
     if (l == NULL) return 1;
@@ -79,6 +108,7 @@ Automate_dc::Automate_dc(Automate af, char style)
         taille_alphabet = af.taille_alphabet;
         nro_etat_initial = 0;
         Liste* tete = new Liste(af.etats_initiaux, af.nb_etats_initiaux, taille_alphabet);
+        poubelle = 0;
         for (int j = 0; j < taille_alphabet; j++) {
             int* etats_presents = (int*)malloc(af.nb_etats * sizeof(int));
             for (int i = 0; i < af.nb_etats; i++) etats_presents[i] = 0;
@@ -91,22 +121,31 @@ Automate_dc::Automate_dc(Automate af, char style)
             for (int i = 0; i < af.nb_etats; i++) {
                 n += etats_presents[i];
             }
-            tete->nb_etats_superposes[j] = n;
-            tete->transitions[j] = (int*)malloc(n * sizeof(int));
-            n = 0;
-            for (int i = 0; i < af.nb_etats; i++) {
-                if (etats_presents[i]) {
-                    tete->transitions[j][n] = i;
-                    n++;
+            if (n == 0) {
+                tete->nb_etats_superposes[j] = 1;
+                tete->transitions[j] = (int*)malloc(1 * sizeof(int));
+                tete->transitions[j][0] = -1;
+                poubelle = 1;
+            } else {
+                tete->nb_etats_superposes[j] = n;
+                tete->transitions[j] = (int*)malloc(n * sizeof(int));
+                n = 0;
+                for (int i = 0; i < af.nb_etats; i++) {
+                    if (etats_presents[i]) {
+                        tete->transitions[j][n] = i;
+                        n++;
+                    }
                 }
             }
         }
         Liste* traite = tete;
         Liste* que = tete;
         for (int i = 0; i < taille_alphabet; i++) {
-            if (nouveau(tete, tete->transitions[i], tete->nb_etats_superposes[i])) {
-                que->suivant = new Liste(tete->transitions[i], tete->nb_etats_superposes[i], taille_alphabet);
-                que = que->suivant;
+            if (tete->transitions[i][0] != -1) {
+                if (nouveau(tete, tete->transitions[i], tete->nb_etats_superposes[i])) {
+                    que->suivant = new Liste(tete->transitions[i], tete->nb_etats_superposes[i], taille_alphabet);
+                    que = que->suivant;
+                }
             }
         }
         while (traite->suivant != NULL) {
@@ -123,18 +162,25 @@ Automate_dc::Automate_dc(Automate af, char style)
                 for (int i = 0; i < af.nb_etats; i++) {
                     if (etats_presents[i]) n++;
                 }
-                traite->nb_etats_superposes[j] = n;
-                traite->transitions[j] = (int*)malloc(n * sizeof(int));
-                n = 0;
-                for (int i = 0; i < af.nb_etats; i++) {
-                    if (etats_presents[i]) {
-                        traite->transitions[j][n] = i;
-                        n++;
+                if (n == 0) {
+                    poubelle = 1;
+                    traite->nb_etats_superposes[j] = 1;
+                    traite->transitions[j] = (int*)malloc(1 * sizeof(int));
+                    traite->transitions[j][0] = -1;
+                } else {
+                    traite->nb_etats_superposes[j] = n;
+                    traite->transitions[j] = (int*)malloc(n * sizeof(int));
+                    n = 0;
+                    for (int i = 0; i < af.nb_etats; i++) {
+                        if (etats_presents[i]) {
+                            traite->transitions[j][n] = i;
+                            n++;
+                        }
                     }
-                }
-                if (nouveau(tete, traite->transitions[j], traite->nb_etats_superposes[j])) {
-                    que->suivant = new Liste(traite->transitions[j], traite->nb_etats_superposes[j], taille_alphabet);
-                    que = que->suivant;
+                    if (nouveau(tete, traite->transitions[j], traite->nb_etats_superposes[j])) {
+                        que->suivant = new Liste(traite->transitions[j], traite->nb_etats_superposes[j], taille_alphabet);
+                        que = que->suivant;
+                    }
                 }
             }
         }
@@ -144,8 +190,47 @@ Automate_dc::Automate_dc(Automate af, char style)
             n++;
             traite = traite->suivant;
         }
-        nb_etats = n;
-
+        if (poubelle) {
+            nb_etats = n+1;
+        } else {
+            nb_etats = n;
+        }
+        etats = (int**)malloc(nb_etats * sizeof(int*));
+        nb_etats_superposes = (int*)malloc(nb_etats * sizeof(int));
+        transitions = (int**)malloc(nb_etats * sizeof(int*));
+        traite = tete;
+        n = 0;
+        int eta_ter = 0;
+        while (traite != NULL) {
+            nb_etats_superposes[n] = traite->taille_etat;
+            etats[n] = (int*)malloc(nb_etats_superposes[n] * sizeof(int));
+            for (int i = 0; i < nb_etats_superposes[n]; i++) etats[n][i] = traite->etat[i];
+            transitions[n] = (int*)malloc(taille_alphabet * sizeof(int));
+            if (contient(af.etats_initiaux, af.nb_etats_terminaux, etats[n], nb_etats_superposes[n])) {
+                eta_ter++;
+            }
+            for (int j = 0; j < taille_alphabet; j++) {
+                transitions[n][j] = correspondant(tete, traite->transitions[j], traite->nb_etats_superposes[j]);
+            }
+            traite = traite->suivant;
+            n++;
+        }
+        if (poubelle) {
+            for (int i = 0; i < taille_alphabet; i++) transitions[nb_etats-1][i] = -1;
+        }
+        nb_etats_terminaux = eta_ter;
+        nro_etats_terminaux = (int*)malloc(nb_etats_terminaux * sizeof(int));
+        eta_ter = 0;
+        int nro = 0;
+        traite = tete;
+        while (traite != NULL) {
+            if (contient(af.etats_initiaux, af.nb_etats_terminaux, etats[n], nb_etats_superposes[n])) {
+                nro_etats_terminaux[eta_ter] = nro;
+                eta_ter++;
+            }
+            traite = traite->suivant;
+            nro++;
+        }
     } else {
         cout << "determinisation_et_completion_automate_asynchrone" << endl;
     }
@@ -181,9 +266,8 @@ void Automate_dc::afficher()
     for (int i = 0; i < nb_etats; i++) {
         if (nb_etats_superposes[i] > maxi_superpo) maxi_superpo = nb_etats_superposes[i];
     }
-    cout << " ";
     for (int c = 'a'; c < 'a' + taille_alphabet; c++) {
-        for (int i = 0; i < maxi_superpo; i++) cout << " ";
+        for (int i = 0; i < maxi_superpo; i++) cout << "  ";
         cout << (char)c;
     }
     for (int e = 0; e < nb_etats; e++) {
@@ -191,13 +275,16 @@ void Automate_dc::afficher()
         for (int i = 1; i < nb_etats_superposes[e]; i++) cout << "," << etats[e][i];
         for (int i = 2 * nb_etats_superposes[e] - 1; i < 2 * maxi_superpo; i++) cout << " ";
         for (int j = 0; j < taille_alphabet; j++) {
-            cout << etats[transitions[e][j]][0];
-            for (int i = 1; i < nb_etats_superposes[transitions[e][j]]; i++) {
-                cout << "," << etats[transitions[e][j]][i];
+            if (transitions[e][j] == -1) {
+                cout << 'P';
+            } else {
+                cout << etats[transitions[e][j]][0];
+                for (int i = 1; i < nb_etats_superposes[transitions[e][j]]; i++) {
+                    cout << "," << etats[transitions[e][j]][i];
+                }
             }
             for (int i = 2 * nb_etats_superposes[transitions[e][j]] - 1; i < 2 * maxi_superpo; i++) cout << " ";
         }
     }
     cout << endl << "------------------------------------" << endl;
 }
-
