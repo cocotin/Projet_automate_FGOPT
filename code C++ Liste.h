@@ -18,4 +18,3 @@ public:
     int** transitions;
     Liste* suivant;
 };
-
