@@ -232,6 +232,11 @@ void Automate::afficher()
         if (transitions[i][1] == -1) cout << transitions[i][0] << '*' << transitions[i][2] << endl;
         else cout << transitions[i][0] << (char)(transitions[i][1] + (int)'a') << transitions[i][2] << endl;
     }
+    cout << endl << "nombre d'etats initiaux : " << nb_etats_initiaux << endl;
+    for (int i = 0; i < nb_etats_initiaux; i++) cout << "      " << etats_initiaux[i] << endl;
+    cout << endl << "nombre d'etats terminaux : " << nb_etats_terminaux << endl;
+    for (int i = 0; i < nb_etats_terminaux; i++) cout << "      " << etats_terminaux[i] << endl;
+    cout << endl;
     int maxi = 1;
     for (int i = 0; i < nb_etats; i++) {
         for (int j = 0; j < taille_alphabet+1; j++) {
@@ -262,3 +267,4 @@ void Automate::afficher()
     }
     cout << endl << "------------------------------------" << endl;
 }
+
