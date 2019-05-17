@@ -46,7 +46,10 @@ int* decoupe(string nom_fichier_source, int nro_ligne, string ligne)
 {
     int longeur = ligne.length();
     int nb = nb_nbr(nom_fichier_source, nro_ligne, ligne, longeur, 0) - 1;
-    int* valeurs = (int*)malloc((nb-1) * sizeof(int));
+    if (nb == 0) {
+        int* valeurs = (int*)malloc(0 * sizeof(int));
+    }
+    int* valeurs = (int*)malloc(nb * sizeof(int));
     int curseur = 0;
     while(ligne[curseur] != ' ') curseur++;
     curseur++;
@@ -156,6 +159,9 @@ Automate::Automate(string fichier_source)
         for (int i = 0; i < nb_etats; i++) {
             table_transitions[i] = (int**)malloc((taille_alphabet + 1) * sizeof(int*));
             nb_transit[i] = (int*)malloc((taille_alphabet + 1) * sizeof(int));
+            for (int j = 0; j < taille_alphabet+1; j++) {
+                nb_transit[i][j] = 0;
+            }
         }
         for (int t = 0; t < nb_transitions; t++) {
             if (transitions[t][1] == -1) nb_transit[transitions[t][0]][taille_alphabet]++;
@@ -267,4 +273,3 @@ void Automate::afficher()
     }
     cout << endl << "------------------------------------" << endl;
 }
-
