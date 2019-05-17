@@ -19,6 +19,7 @@ public:
     int nb_etats;
     int* nb_etats_superposes;
     int** etats;
+    int poubelle;
     int nro_etat_initial;
     int nb_etats_terminaux;
     int* nro_etats_terminaux;
